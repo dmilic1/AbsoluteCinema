@@ -2,6 +2,8 @@
 
 A movie recommendation engine using **Retrieval-Augmented Generation (RAG)**. This agent combines local semantic search with OpenAI's **GPT-5.4 Nano** (March 2026 release) to provide grounded, witty film suggestions.
 
+Check out the app here:  
+👉 [AbsoluteCinema AI]([https://your-app-link.com](https://absolutecinema-ai-agent.streamlit.app/))
 ## 🚀 Key Features
 - **Semantic Search:** Uses `sentence-transformers` (SBERT) and KNN to find movies based on meaning, not just keywords.
 - **Hybrid Architecture:** Local vector retrieval + Cloud-based LLM reasoning for cost-effective performance.
