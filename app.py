@@ -6,6 +6,8 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import re
+import requests
+
 
 # --- Load API Key ---
 load_dotenv()
@@ -17,31 +19,24 @@ st.set_page_config(page_title="AbsoluteCinema AI", page_icon="🍿", layout="cen
 st.title("AbsoluteCinema AI 🍿")
 st.caption("Hybrid AI Agent: Local Retrieval + GPT-5.4 Nano Reasoning")
 
-# --- Dark mode
-st.markdown("""
-    <style>
-    /* Backgrounds */
-    .stApp {
-        background-color: #121212;
-        color: #f0f0f0;
-    }
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #1c1f26;
-    }
-    /* Chat messages */
-    .stChatMessage {
-        background-color: #1c1f26;
-        color: #f0f0f0;
-    }
-    /* Buttons */
-    button, .stButton>button {
-        background-color: #2a2f3a;
-        color: #f5c518;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# --- movie posters ---
+@st.cache_data
+def get_tmdb_poster_by_id(movie_id):
+    api_key = st.secrets["TMDB_API_KEY"]
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}"
+    params = {"api_key": api_key}
 
+    try:
+        response = requests.get(url, params=params)
+        data = response.json()
+
+        poster_path = data.get("poster_path")
+        if poster_path:
+            return f"https://image.tmdb.org/t/p/w500{poster_path}"
+    except Exception as e:
+        print(f"Error fetching poster: {e}")
+
+    return "https://via.placeholder.com/500x750.png?text=No+Image"
 
 
 # --- Load Models (Cached) ---
@@ -73,13 +68,17 @@ class AbsoluteCinemaAgent:
         results = []
         for i, idx in enumerate(indices[0]):
             movie = self.metadata.iloc[idx]
-            results.append(
-                f"TITLE: {movie['title']}\n"
-                f"OVERVIEW: {movie['overview'][:300]}\n"
-                f"SIMILARITY: {distances[0][i]:.2f}"
-            )
 
-        return "\n\n".join(results)
+            # We store everything in a dictionary for maximum flexibility
+            results.append({
+                "id": movie['id'],  # This is your TMDb "Golden Key"
+                "title": movie['title'],
+                "overview": movie['overview'][:300],
+                "similarity": 1 - distances[0][i],  # Convert distance to similarity score
+                "metadata_text": f"TITLE: {movie['title']}\nOVERVIEW: {movie['overview'][:200]}"
+            })
+
+        return results
 
     def ask(self, user_input):
         context_movies = self.get_recommendations(user_input)
@@ -172,40 +171,37 @@ if prompt := st.chat_input("What are we watching tonight?"):
                 except ValueError:
                     title, reason = movie, ""
 
-                # Build placeholder poster URL
-                poster_url = f"https://via.placeholder.com/100x150.png?text={title.replace(' ', '+')}"
+                # Find matching movie from context
+                matched = next((m for m in context if m["title"] in title), None)
+
+                if matched:
+                    poster_url = get_tmdb_poster_by_id(matched["id"])
+                else:
+                    poster_url = "https://via.placeholder.com/500x750.png?text=No+Image"
 
                 st.markdown(f"""
-                <div style="
-                    display:flex;
-                    background-color:#1c1f26;
-                    padding:10px;
-                    border-radius:12px;
-                    margin-bottom:12px;
-                    border:1px solid #2a2f3a;
-                    align-items:flex-start;
-                ">
-                    <div style="flex-shrink:0; margin-right:10px;">
-                        <img src="{poster_url}" style="width:100px; height:150px; border-radius:8px;" />
-                    </div>
-                    <div>
-                        <div style="
-                            font-size:18px;
-                            font-weight:bold;
-                            color:#f5c518;
-                        ">
-                            {title}
+                    <div style="
+                        display:flex;
+                        background-color:#1c1f26;
+                        padding:15px;
+                        border-radius:15px;
+                        margin-bottom:15px;
+                        border:1px solid #333a45;
+                        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                    ">
+                        <div style="flex-shrink:0; margin-right:15px;">
+                            <img src="{poster_url}" style="width:110px; height:165px; border-radius:10px; object-fit: cover;" />
                         </div>
-                        <div style="
-                            font-size:14px;
-                            color:#d1d5db;
-                            margin-top:5px;
-                        ">
-                            {reason}
+                        <div style="flex-grow:1;">
+                            <div style="font-size:20px; font-weight:bold; color:#f5c518; margin-bottom:8px;">
+                                {title}
+                            </div>
+                            <div style="font-size:15px; color:#e5e7eb; line-height:1.4;">
+                                {reason}
+                            </div>
                         </div>
                     </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
             # --- Divider ---
             st.markdown("---")
