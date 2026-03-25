@@ -6,7 +6,7 @@ A movie recommendation engine using **Retrieval-Augmented Generation (RAG)**. Th
 - **Semantic Search:** Uses `sentence-transformers` (SBERT) and KNN to find movies based on meaning, not just keywords.
 - **Hybrid Architecture:** Local vector retrieval + Cloud-based LLM reasoning for cost-effective performance.
 - **Security-First:** Implemented prompt injection delimiters and token-usage guards.
-- **Object-Oriented Design:** Encapsulated logic within a `CinemaScoutAgent` class for modularity.
+- **Object-Oriented Design:** Encapsulated logic within a `AbsoluteCinemaAgent` class for modularity.
 
 ## 🛠️ Tech Stack
 - **Frontend:** Streamlit
