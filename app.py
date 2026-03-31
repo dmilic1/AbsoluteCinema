@@ -206,10 +206,21 @@ if prompt := st.chat_input("What are we watching tonight?"):
             # --- Divider ---
             st.markdown("---")
 
-            # --- Transparency section ---
-            with st.expander("🔍 How these were chosen"):
-                st.caption("Results retrieved using semantic similarity (MiniLM + KNN)")
-                st.code(context, language="markdown")
+            # --- Reasoning and similarity score section ---
+            with st.expander("Find out how these were chosen"):
+                # st.caption("The engine found these matches in the local database using vector similarity:")
+
+                # a clean, bulleted list of the top matches
+                for item in context:
+                    # Calculate a percentage score for the "Similarity"
+                    score = int(item['similarity'] * 100)
+
+                    st.markdown(f"""
+                    **{item['title']}** Match Score: `{score}%`  
+                    📖 *Context used by AI:* {item['overview'][:120]}...
+                    """)
+
+                st.divider()
 
             # Save message
             st.session_state.messages.append(
